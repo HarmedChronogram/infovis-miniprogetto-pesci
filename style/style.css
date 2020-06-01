@@ -1,5 +1,18 @@
+body {
+    font-family: monospace;
+    font-size: 15px;
+}
+
+h2 {
+
+}
 
 .fish *:hover
 {
     stroke: red;
+}
+
+.detail-text {
+    font: bold italic 15px sans-serif;
+    fill: red;
 }
