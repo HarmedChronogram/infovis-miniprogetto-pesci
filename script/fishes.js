@@ -1,12 +1,12 @@
 
-/*
+/* todo
 - insérer les calculs de biais des aires
 - finish tuning parameters
-- explications et commentaires
 */
 
 /* ==== CONFIGURATION ==== */
 
+/* global configurations */
 var transition = 1000;
 var scale = 1;
 var margin = 10;
@@ -14,6 +14,7 @@ var axisDisplacementX = 50;
 var widthCoef = 0.75;
 var heightCoef = 0.85;
 
+/* non-variable configurations for the fish */
 var config = {
     "rangeBodyHeight": [19.5*scale,97.5*scale],
     "rangeTailLength": [6.5*scale,48.75*scale],
@@ -32,10 +33,11 @@ var config = {
 
 
 /* dimensions of the graphic area */
-// scaling ?
 var width = widthCoef * (-20 + window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth) ;
 var height = heightCoef * (-20 + window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight);
 
+/* ranges of acceptable positions for the fish
+to prevent them from getting out of bounds */
 var rangeX = [
     0     + (config["rangeTailLength"][1] + 0.5*config["bodyLength"] + axisDisplacementX + margin),
     width - (config["rangeTailLength"][1] + 0.5*config["bodyLength"] + axisDisplacementX + margin)
@@ -48,6 +50,7 @@ var rangeY = [
 
 /* ==== MAIN ====*/
 
+/* global variables for the program */
 var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
@@ -58,8 +61,10 @@ var dataSet = null;
 var dataRanges = null;
 var dataAssign = null;
 
+/* start */
 asyncInit();
 
+/* loading data */
 d3.json("data/data.json")
 	.then(function(input){
         // validating dataset
@@ -69,10 +74,11 @@ d3.json("data/data.json")
             }
         }
 
-        // copying data because my code necessitates globally accessible data constructs (cf function setFocusedFeature)
+        // copying data because my code necessitates globally accessible data constructs (see function setFocusedFeature)
         assignData(JSON.parse(JSON.stringify(input)));
    	})
 	.catch(function(error) {
+        // displaying eventual loading errors
 		console.log(error);
         d3.select("body").insert("h2", "svg")
             .attr("class", "error")
@@ -83,7 +89,10 @@ d3.json("data/data.json")
 
 /* ==== FUNCTIONS ==== */
 
+
 function asyncInit() {
+    /* asynchronous init, waiting for the loading and copying of data
+    into the global variable data */
     if (data == null) {
         setTimeout(asyncInit, 100);
     } else {
@@ -92,9 +101,12 @@ function asyncInit() {
 }
 
 function assignData(input) {
-    // assigning data and related constructs to global variables
+    /* assigning data and related constructs to global variables */
+
+    // dataset
     dataSet = input;
 
+    // assigning the names of variables in the dataset to features of the fish
     dataAssign = {
         "body" : d3.keys(dataSet[0])[0],
         "tail" : d3.keys(dataSet[0])[1],
@@ -103,6 +115,9 @@ function assignData(input) {
         "dorsal" : d3.keys(dataSet[0])[4]
     };
 
+    /* obtain ranges of values for each variable in the dataset,
+    using the assegnation defined before, so we don't have
+    to worry about the names of the variables in the dataset */
     dataRanges = {
         [dataAssign["body"]]: [d3.min(dataSet, function(d){return d[dataAssign["body"]]}), d3.max(dataSet, function(d){return d[dataAssign["body"]]})],
         [dataAssign["tail"]]: [d3.min(dataSet, function(d){return d[dataAssign["tail"]]}), d3.max(dataSet, function(d){return d[dataAssign["tail"]]})],
@@ -111,6 +126,7 @@ function assignData(input) {
         [dataAssign["dorsal"]]: [d3.min(dataSet, function(d){return d[dataAssign["dorsal"]]}), d3.max(dataSet, function(d){return d[dataAssign["dorsal"]]})]
     };
 
+    /* putting everything together */
     data = {
         "dataSet": dataSet,
         "dataRanges": dataRanges,
@@ -120,6 +136,10 @@ function assignData(input) {
 
 
 function init() {
+    /* initilisation of the visualisation,
+    construction of the fish and svg */
+
+    // clear
     svg.selectAll("*").remove();
 
     // title
@@ -138,7 +158,9 @@ function init() {
         .attr("fill", "lightblue");
 
 
-    // those will be used only during initilisation
+    /* scales for mapping the values of the data-points to the dimension ranges
+    of the visual features of the fish, these scales will be used only during initilisation,
+    no need for them to be global */
     var bodyHeight = d3.scaleLinear();
     bodyHeight.domain(dataRanges[dataAssign["body"]]);
     bodyHeight.range(config["rangeBodyHeight"]);
@@ -160,11 +182,13 @@ function init() {
     dorsalHeight.range(config["rangeDorsalHeight"]);
 
 
-    /* position of (0,0) for all fishes so the x,y of translate(x,y)
+    /* position of (0,0) for all the fish so the x,y of translate(x,y)
     are always the absolute coordinates and we can move everything
     by simply changing de transform attribute and with a transition */
     var x = 0;
     var y = 0;
+
+    /* building the fish */
 
     // joining data to svg groups for fishes
     var fishes = svg.selectAll(".fish").data(dataSet)
@@ -187,7 +211,7 @@ function init() {
             x - 0.5*config["bodyLength"] - tailLength(d[dataAssign["tail"]]), y-  0.5*config["tailHeight"]
         ].join(" ")});
 
-
+    // creating fish forsal fins
     fishes.append("polyline")
         .attr("class", "dorsal")
         .attr("onclick", "setFocusedFeature(\"dorsal\")")
@@ -236,12 +260,15 @@ function init() {
 
 
 
-    // positioning fishes to move from center to random position to make a landing screen effect
+    /* positioning the fish to move from center to random position to make a landing screen effect */
+
     fishes.attr("transform", function(d, i){ return "translate("+width/2+","+height/2+")" });
 
+    // to get semi-random positioning
     var posX = randomPositionArray(rangeX, dataSet.length);
     var posY = randomPositionArray(rangeY, dataSet.length);
 
+    // transition to semi-random positions
     fishes.transition().duration(transition).delay(0)
         .attr("transform", function(d, i){
             var x = rangeX[0] + posX[i] + margin;
@@ -251,7 +278,10 @@ function init() {
 }
 
 function showDetail(feature, data) {
+    /* displaying data detail on hover */
+
     //console.log(feature, data); // debug
+
     svg.append("text")
         .attr("class", "detail-text")
         .attr("x", "10")
@@ -261,10 +291,13 @@ function showDetail(feature, data) {
 }
 
 function removeDetail() {
+    /* removing data detail when hovering stops */
     svg.selectAll(".detail-text").remove();
 }
 
 function setFocusedFeature(feature) {
+    /* arranging the fish based on the selected feature */
+
     //console.log("focusing "+feature); // debug
 
     var fishes = d3.selectAll(".fish");
@@ -294,7 +327,7 @@ function setFocusedFeature(feature) {
     scaleY.range(rangeY);
 
     // transition to new positions based on selected feature
-    var posX = randomPositionArray(rangeX, dataSet.length); // trying to make a good repartition ~~~
+    var posX = randomPositionArray(rangeX, dataSet.length); // to get semi-random positioning on the x axis
     fishes.transition().duration(transition).delay(0)
         .attr("transform", function(d, i){
             var x = rangeX[0] + posX[i] + margin;
@@ -323,15 +356,19 @@ function setFocusedFeature(feature) {
 /* ==== UTIL ==== */
 
 function randomPositionArray(range, length) {
+    /* creates an array of positions based on a position
+    range and a number of elements to position in this range */
     var pos = new Array(length);
     for (let i = 0; i < pos.length; i++) {
         pos[i] = i*((range[1]-range[0])/pos.length);
     }
+    // shuffling the position to provied semi-random positioning
     pos.sort(function(){ return 0.5 - Math.random() });
     return pos;
 }
 
 function getRandomInt(range) {
+    /* get a random integer in a range */
     var min = range[0];
     var max = range[1];
     return Math.floor(Math.random()*(max - min + 1)) + min;
