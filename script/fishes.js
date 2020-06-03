@@ -7,7 +7,7 @@ var scale = 1;
 var margin = 10;
 var axisDisplacementX = 50;
 var widthCoef = 0.85;
-var heightCoef = 0.8;
+var heightCoef = 0.85;
 
 /* constant configurations for the fish */
 var config = {

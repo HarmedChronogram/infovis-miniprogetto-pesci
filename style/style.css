@@ -3,16 +3,16 @@ body {
     font-size: 15px;
 }
 
-button {
-    font-size: 12px;
-    margin: 0;
-    padding: 0;
-}
-
 h2 {
     padding: 0;
     margin-top: 20px;
     margin-bottom: 10px;
+}
+
+button {
+    font-size: 12px;
+    margin: 0;
+    padding: 0;
 }
 
 .fish *:hover
