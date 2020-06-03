@@ -1,9 +1,4 @@
 
-/* todo
-- insérer les calculs de biais des aires
-- finish tuning parameters
-*/
-
 /* ==== CONFIGURATION ==== */
 
 /* global configurations */
@@ -11,10 +6,10 @@ var transition = 1000;
 var scale = 1;
 var margin = 10;
 var axisDisplacementX = 50;
-var widthCoef = 0.75;
-var heightCoef = 0.85;
+var widthCoef = 0.85;
+var heightCoef = 0.8;
 
-/* non-variable configurations for the fish */
+/* constant configurations for the fish */
 var config = {
     "rangeBodyHeight": [19.5*scale,97.5*scale],
     "rangeTailLength": [6.5*scale,48.75*scale],
@@ -40,11 +35,11 @@ var height = heightCoef * (-20 + window.innerHeight || document.documentElement.
 to prevent them from getting out of bounds */
 var rangeX = [
     0     + (config["rangeTailLength"][1] + 0.5*config["bodyLength"] + axisDisplacementX + margin),
-    width - (config["rangeTailLength"][1] + 0.5*config["bodyLength"] + axisDisplacementX + margin)
+    width - (0.5*config["bodyLength"] + axisDisplacementX + margin)
 ];
 var rangeY = [
     0      + (0.5*config["rangeBodyHeight"][1] + config["rangeDorsalHeight"][1] + margin),
-    height - (0.5*config["rangeBodyHeight"][1] + margin)
+    height - (config["rangeFinHeight"][1] + margin*3)
 ];
 
 
@@ -55,40 +50,61 @@ var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
 
+var dataPath = null;
 var currentFeature = null;
 var data = null;
 var dataSet = null;
 var dataRanges = null;
 var dataAssign = null;
 
-/* start */
-asyncInit();
-
-/* loading data */
-d3.json("data/data.json")
-	.then(function(input){
-        // validating dataset
-        for (i in input) {
-            if (d3.keys(input[i]).length < 5) {
-                throw "Dataset is invalid, need at least 5 features per entry";
-            }
-        }
-
-        // copying data because my code necessitates globally accessible data constructs (see function setFocusedFeature)
-        assignData(JSON.parse(JSON.stringify(input)));
-   	})
-	.catch(function(error) {
-        // displaying eventual loading errors
-		console.log(error);
-        d3.select("body").insert("h2", "svg")
-            .attr("class", "error")
-            .text(function(){return "ERROR: "+error});
-  	});
-
-
+start("data/dataset_1.json"); // start with default dataset
 
 /* ==== FUNCTIONS ==== */
 
+function start(path) {
+    dataPath = path;
+
+    currentFeature = null;
+    data = null;
+    dataSet = null;
+    dataRanges = null;
+    dataAssign = null;
+
+    /* start */
+    asyncInit();
+
+    /* loading data */
+    d3.json(dataPath)
+    	.then(function(input){
+            // validating dataset
+            for (i in input) {
+                if (d3.keys(input[i]).length < 5) {
+                    throw "Dataset is invalid, need at least 5 features per entry";
+                }
+                for (var j = 0; j < 5; j++) {
+                    if (typeof input[i][d3.keys(input[i])[j]] != "number") {
+                        throw "Dataset is invalid, values need to be numbers";
+                    }
+                    if (input[i][d3.keys(input[i])[j]] < 0) {
+                        throw "Dataset is invalid, values need to be positive";
+                    }
+                }
+            }
+
+            // copying data because my code necessitates globally accessible data constructs (see function setFocusedFeature)
+            assignData(JSON.parse(JSON.stringify(input)));
+       	})
+    	.catch(function(error) {
+            // displaying eventual loading errors
+    		console.log(error);
+
+            svg.selectAll("*").remove();
+            d3.select("h2").remove();
+            d3.select("body").insert("h2", "svg")
+                .attr("class", "error")
+                .text(function(){return "ERROR: "+error});
+      	});
+}
 
 function asyncInit() {
     /* asynchronous init, waiting for the loading and copying of data
@@ -141,6 +157,7 @@ function init() {
 
     // clear
     svg.selectAll("*").remove();
+    d3.select("h2").remove();
 
     // title
     d3.select("body").insert("h2", "svg")
@@ -365,11 +382,4 @@ function randomPositionArray(range, length) {
     // shuffling the position to provied semi-random positioning
     pos.sort(function(){ return 0.5 - Math.random() });
     return pos;
-}
-
-function getRandomInt(range) {
-    /* get a random integer in a range */
-    var min = range[0];
-    var max = range[1];
-    return Math.floor(Math.random()*(max - min + 1)) + min;
 }

@@ -12,3 +12,4 @@
     * la terza all'altezza della pinna ventrale,
     * la quarta al raggio dell'occhio e
     * la quinta all'altezza della pinna dorsale.
+* Con i buttons si può utilizzare un dataset alternativo per provare la visualizzazione con diversi ranges per le features.
